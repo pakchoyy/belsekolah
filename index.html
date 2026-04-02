@@ -1,556 +1,287 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" id="themeColorMeta" content="#0a0a0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="AlarmKu">
-<meta name="description" content="Alarm clock web app - bisa install di HP">
-<title>AlarmKu</title>
+<meta name="apple-mobile-web-app-title" content="BelSekolah">
+<meta name="description" content="Bel Sekolah Digital - Alarm otomatis untuk sekolah">
+<title>Bel Sekolah</title>
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" id="appleTouchIcon" href="icon-192.png">
+<link id="faviconLink" rel="icon" type="image/png" href="icon-192.png">
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
   }
 </script>
-<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131c;
-    --surface2: #1c1c2a;
-    --border: #2a2a3d;
-    --accent: #7c6af7;
-    --accent2: #f76a8a;
-    --text: #f0f0fa;
-    --muted: #6b6b8a;
-    --green: #4ade80;
-    --radius: 20px;
+  [data-theme="dark"] {
+    --bg: #0a0a0f; --surface: #13131c; --surface2: #1c1c2a;
+    --border: #2a2a3d; --text: #f0f0fa; --muted: #6b6b8a; --shadow: rgba(0,0,0,0.4);
   }
+  [data-theme="light"] {
+    --bg: #f2f2f7; --surface: #ffffff; --surface2: #e8e8f0;
+    --border: #d0d0e0; --text: #1a1a2e; --muted: #8888aa; --shadow: rgba(0,0,0,0.08);
+  }
+  :root { --accent: #7c6af7; --accent2: #f76a8a; --radius: 20px; }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
     font-family: 'DM Sans', sans-serif;
-    min-height: 100dvh;
-    max-width: 480px;
-    margin: 0 auto;
-    padding-bottom: 80px;
-    overflow-x: hidden;
+    min-height: 100dvh; max-width: 480px;
+    margin: 0 auto; padding-bottom: 80px;
+    overflow-x: hidden; transition: background 0.3s, color 0.3s;
   }
 
-  /* HEADER / CLOCK */
-  .header {
-    padding: 40px 24px 24px;
-    text-align: center;
-    position: relative;
+  .header { padding: 40px 24px 20px; text-align: center; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .school-logo-btn {
+    width: 44px; height: 44px; border-radius: 12px;
+    border: 2px solid var(--border); background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; cursor: pointer; overflow: hidden; flex-shrink: 0;
   }
-  .app-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
-    color: var(--accent);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 20px;
+  .school-logo-btn img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  .app-name { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; flex: 1; text-align: center; }
+  .theme-toggle {
+    width: 44px; height: 44px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface);
+    cursor: pointer; font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
   }
+  .theme-toggle:active { transform: scale(0.9); }
   .clock-display {
     font-family: 'Space Mono', monospace;
-    font-size: clamp(52px, 18vw, 80px);
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -2px;
-    background: linear-gradient(135deg, #fff 30%, var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: clamp(52px, 18vw, 80px); font-weight: 700;
+    line-height: 1; letter-spacing: -2px;
+    background: linear-gradient(135deg, var(--text) 30%, var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
-  .clock-date {
-    font-size: 14px;
-    color: var(--muted);
-    margin-top: 8px;
-    font-weight: 400;
-  }
+  .clock-date { font-size: 14px; color: var(--muted); margin-top: 8px; }
 
-  /* TAB BAR */
   .tabs {
-    display: flex;
-    background: var(--surface);
-    border-radius: 14px;
-    margin: 0 24px 24px;
-    padding: 4px;
-    gap: 4px;
+    display: flex; background: var(--surface); border-radius: 14px;
+    margin: 0 24px 24px; padding: 4px; gap: 4px;
+    box-shadow: 0 2px 8px var(--shadow);
   }
   .tab-btn {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
+    flex: 1; padding: 10px; border: none; background: transparent;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; border-radius: 10px; cursor: pointer; transition: all 0.2s;
   }
-  .tab-btn.active {
-    background: var(--accent);
-    color: white;
-  }
+  .tab-btn.active { background: var(--accent); color: white; }
 
-  /* PANELS */
   .panel { display: none; padding: 0 24px; }
   .panel.active { display: block; }
 
-  /* ALARM LIST */
   .alarm-list { display: flex; flex-direction: column; gap: 12px; }
   .alarm-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    transition: border-color 0.2s;
-    position: relative;
-    overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+    box-shadow: 0 2px 8px var(--shadow);
   }
-  .alarm-card.active-alarm {
-    border-color: var(--accent);
-    box-shadow: 0 0 20px rgba(124, 106, 247, 0.15);
-  }
+  .alarm-card.active-alarm { border-color: var(--accent); box-shadow: 0 0 20px rgba(124,106,247,0.15); }
   .alarm-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: var(--accent);
-    border-radius: 0 2px 2px 0;
-    opacity: 0;
-    transition: opacity 0.2s;
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent); border-radius: 0 2px 2px 0; opacity: 0; transition: opacity 0.2s;
   }
   .alarm-card.active-alarm::before { opacity: 1; }
-  .alarm-info { flex: 1 }
-  .alarm-time {
-    font-family: 'Space Mono', monospace;
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--text);
-  }
+  .alarm-info { flex: 1; min-width: 0; }
+  .alarm-time { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; line-height: 1; color: var(--text); }
   .alarm-time.disabled { color: var(--muted); }
-  .alarm-label {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-  .alarm-days {
-    display: flex;
-    gap: 4px;
-    margin-top: 8px;
-  }
+  .alarm-label { font-size: 13px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .alarm-days { display: flex; gap: 4px; margin-top: 8px; }
   .day-dot {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--surface2);
+    width: 22px; height: 22px; border-radius: 50%; background: var(--surface2);
     display: flex; align-items: center; justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--muted);
+    font-size: 10px; font-weight: 700; color: var(--muted);
   }
   .day-dot.on { background: var(--accent); color: white; }
-
   .toggle-switch {
-    width: 46px; height: 26px;
-    background: var(--surface2);
-    border-radius: 13px;
-    cursor: pointer;
-    position: relative;
-    transition: background 0.2s;
-    flex-shrink: 0;
-    border: none;
-    outline: none;
+    width: 46px; height: 26px; background: var(--surface2); border-radius: 13px;
+    cursor: pointer; position: relative; transition: background 0.2s;
+    flex-shrink: 0; border: none; outline: none;
   }
   .toggle-switch.on { background: var(--accent); }
-  .toggle-knob {
-    position: absolute;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    background: white;
-    top: 3px; left: 3px;
-    transition: transform 0.2s;
-  }
+  .toggle-knob { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: transform 0.2s; }
   .toggle-switch.on .toggle-knob { transform: translateX(20px); }
-
-  .btn-delete {
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 18px;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 8px;
-    transition: color 0.2s;
-    flex-shrink: 0;
-  }
+  .btn-delete { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; border-radius: 8px; transition: color 0.2s; flex-shrink: 0; }
   .btn-delete:hover { color: var(--accent2); }
-
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--muted);
-  }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
   .empty-icon { font-size: 48px; margin-bottom: 12px; }
   .empty-text { font-size: 14px; line-height: 1.6; }
 
-  /* ADD ALARM FORM */
-  .form-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-  }
-  .form-title {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 20px;
-  }
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: 0 2px 8px var(--shadow); }
+  .form-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
   .form-group { margin-bottom: 18px; }
-  .form-label {
-    font-size: 12px;
-    color: var(--muted);
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 8px;
-  }
+  .form-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 8px; }
   .time-input {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    font-size: 32px;
-    font-weight: 700;
-    text-align: center;
-    padding: 16px;
-    outline: none;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text); font-family: 'Space Mono', monospace;
+    font-size: 32px; font-weight: 700; text-align: center; padding: 16px;
+    outline: none; transition: border-color 0.2s; -webkit-appearance: none;
   }
   .time-input:focus { border-color: var(--accent); }
-  .time-input::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.5;
-  }
-
+  [data-theme="dark"] .time-input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
+  [data-theme="light"] .time-input::-webkit-calendar-picker-indicator { opacity: 0.5; }
   .text-input {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    padding: 14px 16px;
-    outline: none;
-    transition: border-color 0.2s;
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; padding: 14px 16px; outline: none; transition: border-color 0.2s;
   }
   .text-input:focus { border-color: var(--accent); }
   .text-input::placeholder { color: var(--muted); }
-
-  .day-picker {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
+  .day-picker { display: flex; gap: 6px; flex-wrap: wrap; }
   .day-pick-btn {
-    width: 38px; height: 38px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--muted);
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s;
   }
-  .day-pick-btn.selected {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-  }
-
-  .sound-picker {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
+  .day-pick-btn.selected { background: var(--accent); border-color: var(--accent); color: white; }
+  .sound-picker { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
   .sound-btn {
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-align: left;
-    font-family: 'DM Sans', sans-serif;
-    position: relative;
-    overflow: hidden;
+    padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--muted); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; text-align: left;
+    font-family: 'DM Sans', sans-serif; position: relative; overflow: hidden;
   }
-  .sound-btn.selected {
-    border-color: var(--accent);
-    background: rgba(124,106,247,0.15);
-    color: var(--accent);
-  }
+  .sound-btn.selected { border-color: var(--accent); background: rgba(124,106,247,0.15); color: var(--accent); }
   .sound-btn.custom-sound { padding-right: 26px; white-space: nowrap; text-overflow: ellipsis; }
   .btn-del-sound {
-    position: absolute; right: 5px; top: 50%;
-    transform: translateY(-50%);
-    background: none; border: none;
-    color: var(--muted); font-size: 13px;
-    cursor: pointer; padding: 2px; line-height: 1;
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px; line-height: 1;
   }
   .btn-del-sound:hover { color: var(--accent2); }
   .upload-sound-area {
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    padding: 14px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s;
-    margin-top: 4px;
+    border: 2px dashed var(--border); border-radius: 12px; padding: 14px;
+    text-align: center; cursor: pointer; transition: border-color 0.2s; margin-top: 4px;
   }
   .upload-sound-area:hover, .upload-sound-area.drag { border-color: var(--accent); }
   .upload-sound-area input { display: none; }
   .upload-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
   .btn-add {
-    width: 100%;
-    padding: 16px;
-    background: var(--accent);
-    border: none;
-    border-radius: 14px;
-    color: white;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
-    margin-top: 4px;
+    width: 100%; padding: 16px; background: var(--accent); border: none;
+    border-radius: 14px; color: white; font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; margin-top: 4px;
   }
   .btn-add:active { transform: scale(0.98); opacity: 0.9; }
 
-  /* FAB */
-  .fab {
-    position: fixed;
-    bottom: 28px;
-    right: 24px;
-    width: 56px; height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    box-shadow: 0 8px 24px rgba(124,106,247,0.4);
-    transition: transform 0.2s, box-shadow 0.2s;
+  /* SETTINGS */
+  .settings-section { margin-bottom: 24px; }
+  .settings-title { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 8px var(--shadow); }
+  .settings-row { display: flex; align-items: center; padding: 16px 20px; gap: 14px; border-bottom: 1px solid var(--border); }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-icon { font-size: 22px; flex-shrink: 0; }
+  .settings-info { flex: 1; min-width: 0; }
+  .settings-label { font-size: 15px; font-weight: 500; }
+  .settings-sub { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .setting-btn {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-size: 12px; font-weight: 600; padding: 8px 14px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: border-color 0.2s;
+  }
+  .setting-btn:hover { border-color: var(--accent); }
+  .logo-preview-box {
+    width: 48px; height: 48px; border-radius: 12px;
+    border: 2px solid var(--border); background: var(--surface2);
     display: flex; align-items: center; justify-content: center;
-    z-index: 100;
+    font-size: 24px; overflow: hidden; flex-shrink: 0;
   }
-  .fab:active { transform: scale(0.92); }
+  .logo-preview-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
 
-  /* TIMER PANEL */
-  .timer-display {
-    text-align: center;
-    padding: 32px 0;
-  }
-  .timer-time {
-    font-family: 'Space Mono', monospace;
-    font-size: clamp(48px, 16vw, 72px);
-    font-weight: 700;
-    color: var(--text);
-  }
-  .timer-time.running { color: var(--green); }
-  .timer-presets {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .preset-btn {
-    padding: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  .timer-controls {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-top: 20px;
-  }
-  .ctrl-btn {
-    padding: 14px 32px;
-    border-radius: 14px;
-    border: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .ctrl-btn.primary { background: var(--accent); color: white; }
-  .ctrl-btn.secondary { background: var(--surface2); color: var(--text); }
-  .ctrl-btn:active { transform: scale(0.96); }
-
-  /* RING OVERLAY */
+  /* RING */
   .ring-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(10,10,15,0.95);
-    z-index: 999;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 40px;
+    display: none; position: fixed; inset: 0;
+    background: var(--bg); z-index: 999;
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 40px;
   }
   .ring-overlay.show { display: flex; }
-  .ring-icon { font-size: 80px; animation: ring-shake 0.5s infinite alternate; }
-  @keyframes ring-shake {
-    from { transform: rotate(-10deg) scale(1); }
-    to { transform: rotate(10deg) scale(1.05); }
+  .ring-logo {
+    width: 100px; height: 100px; border-radius: 24px;
+    border: 3px solid var(--accent); background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; overflow: hidden; margin-bottom: 20px;
+    animation: rpulse 1s infinite alternate;
+  }
+  .ring-logo img { width: 100%; height: 100%; object-fit: cover; }
+  @keyframes rpulse {
+    from { box-shadow: 0 0 0 0 rgba(124,106,247,0.5); }
+    to { box-shadow: 0 0 0 24px rgba(124,106,247,0); }
   }
   .ring-time {
-    font-family: 'Space Mono', monospace;
-    font-size: 60px;
-    font-weight: 700;
-    margin: 16px 0 8px;
+    font-family: 'Space Mono', monospace; font-size: 60px; font-weight: 700; margin-bottom: 8px;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
   .ring-label { font-size: 20px; color: var(--muted); margin-bottom: 40px; }
-  .btn-dismiss {
-    padding: 18px 48px;
-    background: var(--accent2);
-    border: none;
-    border-radius: 16px;
-    color: white;
-    font-size: 17px;
-    font-weight: 700;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    margin-bottom: 12px;
-  }
-  .btn-snooze {
-    padding: 14px 40px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    color: var(--text);
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-  }
+  .btn-dismiss { padding: 18px 48px; background: var(--accent2); border: none; border-radius: 16px; color: white; font-size: 17px; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-bottom: 12px; }
+  .btn-snooze { padding: 14px 40px; background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; color: var(--text); font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; }
 
-  /* INSTALL BANNER */
   .install-banner {
     display: none;
-    background: linear-gradient(135deg, rgba(124,106,247,0.2), rgba(247,106,138,0.1));
-    border: 1px solid rgba(124,106,247,0.3);
-    border-radius: 14px;
-    padding: 14px 18px;
-    margin: 0 24px 20px;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
+    background: linear-gradient(135deg, rgba(124,106,247,0.15), rgba(247,106,138,0.08));
+    border: 1px solid rgba(124,106,247,0.3); border-radius: 14px;
+    padding: 14px 18px; margin: 0 24px 20px;
+    flex-direction: row; align-items: center; gap: 12px;
   }
   .install-banner.show { display: flex; }
   .install-text { flex: 1; font-size: 13px; line-height: 1.4; }
   .install-text strong { color: var(--accent); }
-  .btn-install {
-    background: var(--accent);
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 10px 14px;
-    cursor: pointer;
-    white-space: nowrap;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .btn-close-banner {
-    background: none; border: none; color: var(--muted);
-    font-size: 18px; cursor: pointer; padding: 0;
-  }
+  .btn-install { background: var(--accent); border: none; border-radius: 10px; color: white; font-size: 12px; font-weight: 700; padding: 10px 14px; cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif; }
+  .btn-close-banner { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
 </style>
 </head>
 <body>
 
-<!-- RING OVERLAY -->
 <div class="ring-overlay" id="ringOverlay">
-  <div class="ring-icon">⏰</div>
+  <div class="ring-logo" id="ringLogo">🔔</div>
   <div class="ring-time" id="ringTime">07:00</div>
-  <div class="ring-label" id="ringLabel">Waktunya bangun!</div>
+  <div class="ring-label" id="ringLabel">Waktunya bel!</div>
   <button class="btn-dismiss" onclick="dismissAlarm()">✓ Matikan</button>
   <button class="btn-snooze" onclick="snoozeAlarm()">💤 Snooze 5 menit</button>
 </div>
 
-<!-- INSTALL BANNER -->
 <div class="install-banner" id="installBanner">
-  <span class="install-text"><strong>Install AlarmKu</strong><br>Pasang ke homescreen HP kamu</span>
+  <span class="install-text"><strong>Install Bel Sekolah</strong><br>Pasang ke homescreen HP</span>
   <button class="btn-install" id="btnInstall">Install</button>
   <button class="btn-close-banner" onclick="document.getElementById('installBanner').classList.remove('show')">×</button>
 </div>
 
-<!-- HEADER -->
 <div class="header">
-  <div class="app-title">AlarmKu</div>
-  <div class="clock-display" id="clockDisplay">00:00</div>
-  <div class="clock-date" id="clockDate">Loading...</div>
-</div>
-
-<!-- TABS -->
-<div class="tabs">
-  <button class="tab-btn active" onclick="showTab('alarms', this)">⏰ Alarm</button>
-  <button class="tab-btn" onclick="showTab('add', this)">＋ Tambah</button>
-  <button class="tab-btn" onclick="showTab('timer', this)">⏱ Timer</button>
-</div>
-
-<!-- ALARM LIST PANEL -->
-<div class="panel active" id="panel-alarms">
-  <div class="alarm-list" id="alarmList">
-    <div class="empty-state">
-      <div class="empty-icon">⏰</div>
-      <div class="empty-text">Belum ada alarm.<br>Tap <strong>+ Tambah</strong> untuk buat alarm baru.</div>
+  <div class="header-top">
+    <div class="school-logo-btn" id="schoolLogoBtn" onclick="document.getElementById('logoInput1').click()">
+      <span id="hLogoEmoji">🏫</span>
+      <img id="hLogoImg">
     </div>
+    <input type="file" id="logoInput1" accept="image/*" style="display:none">
+    <div class="app-name">Bel Sekolah</div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
   </div>
+  <div class="clock-display" id="clockDisplay">00:00</div>
+  <div class="clock-date" id="clockDate">Memuat...</div>
 </div>
 
-<!-- ADD ALARM PANEL -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('alarms',this)">⏰ Alarm</button>
+  <button class="tab-btn" onclick="showTab('add',this)">＋ Tambah</button>
+  <button class="tab-btn" onclick="showTab('settings',this)">⚙️ Setelan</button>
+</div>
+
+<div class="panel active" id="panel-alarms">
+  <div class="alarm-list" id="alarmList"></div>
+</div>
+
 <div class="panel" id="panel-add">
   <div class="form-card">
     <div class="form-title">Buat Alarm Baru</div>
@@ -560,7 +291,7 @@
     </div>
     <div class="form-group">
       <label class="form-label">Label</label>
-      <input type="text" class="text-input" id="alarmLabel" placeholder="Contoh: Bangun pagi, Minum obat..." maxlength="40">
+      <input type="text" class="text-input" id="alarmLabel" placeholder="Contoh: Bel masuk, Istirahat 1..." maxlength="40">
     </div>
     <div class="form-group">
       <label class="form-label">Hari</label>
@@ -576,62 +307,144 @@
     </div>
     <div class="form-group">
       <label class="form-label">Suara</label>
-      <div class="sound-picker" id="soundPicker">
-        <button class="sound-btn selected" data-sound="beep">🔔 Beep</button>
-        <button class="sound-btn" data-sound="bell">🛎 Bell</button>
-        <button class="sound-btn" data-sound="digital">📱 Digital</button>
-        <button class="sound-btn" data-sound="gentle">🌅 Gentle</button>
-      </div>
+      <div class="sound-picker" id="soundPicker"></div>
       <label class="upload-sound-area" id="uploadArea">
-        <input type="file" id="soundFileInput" accept="audio/mp3,audio/wav,audio/ogg,audio/*">
+        <input type="file" id="soundFileInput" accept="audio/*">
         <div style="font-size:22px">🎵</div>
-        <div class="upload-hint">Tap untuk upload suara sendiri<br><small>MP3, WAV, OGG — maks 2MB</small></div>
+        <div class="upload-hint">Tap untuk upload suara bel sendiri<br><small>MP3, WAV, OGG — maks 5MB</small></div>
       </label>
     </div>
     <button class="btn-add" onclick="addAlarm()">+ Simpan Alarm</button>
   </div>
 </div>
 
-<!-- TIMER PANEL -->
-<div class="panel" id="panel-timer">
-  <div class="timer-presets">
-    <button class="preset-btn" onclick="setTimer(1)">1 mnt</button>
-    <button class="preset-btn" onclick="setTimer(5)">5 mnt</button>
-    <button class="preset-btn" onclick="setTimer(10)">10 mnt</button>
-    <button class="preset-btn" onclick="setTimer(15)">15 mnt</button>
-    <button class="preset-btn" onclick="setTimer(30)">30 mnt</button>
-    <button class="preset-btn" onclick="setTimer(60)">1 jam</button>
+<div class="panel" id="panel-settings">
+  <div class="settings-section">
+    <div class="settings-title">Tampilan</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-icon" id="themeIcon">🌙</div>
+        <div class="settings-info">
+          <div class="settings-label">Mode Tampilan</div>
+          <div class="settings-sub" id="themeSub">Mode Gelap aktif</div>
+        </div>
+        <button class="setting-btn" onclick="toggleTheme()" id="themeBtnS">☀️ Terang</button>
+      </div>
+    </div>
   </div>
-  <div class="timer-display">
-    <div class="timer-time" id="timerDisplay">00:00</div>
+
+  <div class="settings-section">
+    <div class="settings-title">Logo Sekolah</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="logo-preview-box" id="logoPreviewBox">
+          <span id="sLogoEmoji">🏫</span>
+          <img id="sLogoImg">
+        </div>
+        <div class="settings-info">
+          <div class="settings-label">Logo / Ikon Sekolah</div>
+          <div class="settings-sub" id="logoSub">Belum ada logo</div>
+        </div>
+        <label class="setting-btn" style="cursor:pointer">
+          Upload
+          <input type="file" id="logoInput2" accept="image/*" style="display:none">
+        </label>
+      </div>
+      <div class="settings-row" id="removeLogoRow" style="display:none">
+        <div class="settings-icon">🗑</div>
+        <div class="settings-info">
+          <div class="settings-label">Hapus Logo</div>
+          <div class="settings-sub">Kembali ke ikon 🏫</div>
+        </div>
+        <button class="setting-btn" onclick="removeLogo()" style="color:var(--accent2);border-color:var(--accent2)">Hapus</button>
+      </div>
+    </div>
   </div>
-  <div class="timer-controls">
-    <button class="ctrl-btn secondary" onclick="resetTimer()">Reset</button>
-    <button class="ctrl-btn primary" id="timerToggleBtn" onclick="toggleTimer()">Mulai</button>
+
+  <div class="settings-section">
+    <div class="settings-title">Statistik</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-icon">📊</div>
+        <div class="settings-info">
+          <div class="settings-label">Alarm</div>
+          <div class="settings-sub" id="alarmStatText">0 alarm terdaftar</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-icon">📲</div>
+        <div class="settings-info">
+          <div class="settings-label">Install ke HP</div>
+          <div class="settings-sub">Pasang sebagai app di homescreen</div>
+        </div>
+        <button class="setting-btn" id="btnInstall2">Install</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
+// ===== THEME =====
+let isDark = localStorage.getItem('alarmku_theme') !== 'light';
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('themeToggle').textContent = isDark ? '🌙' : '☀️';
+  document.getElementById('themeColorMeta').content = isDark ? '#0a0a0f' : '#f2f2f7';
+  document.getElementById('themeIcon').textContent = isDark ? '🌙' : '☀️';
+  document.getElementById('themeSub').textContent = isDark ? 'Mode Gelap aktif' : 'Mode Terang aktif';
+  document.getElementById('themeBtnS').textContent = isDark ? '☀️ Terang' : '🌙 Gelap';
+  localStorage.setItem('alarmku_theme', isDark ? 'dark' : 'light');
+}
+function toggleTheme() { isDark = !isDark; applyTheme(); }
+applyTheme();
+
+// ===== LOGO =====
+let schoolLogo = localStorage.getItem('alarmku_logo') || '';
+function applyLogo() {
+  const has = !!schoolLogo;
+  // Header
+  document.getElementById('hLogoEmoji').style.display = has ? 'none' : '';
+  const hI = document.getElementById('hLogoImg');
+  hI.style.display = has ? 'block' : 'none';
+  if (has) hI.src = schoolLogo;
+  // Settings preview
+  document.getElementById('sLogoEmoji').style.display = has ? 'none' : '';
+  const sI = document.getElementById('sLogoImg');
+  sI.style.display = has ? 'block' : 'none';
+  if (has) sI.src = schoolLogo;
+  // Ring overlay
+  const rL = document.getElementById('ringLogo');
+  rL.innerHTML = has ? `<img src="${schoolLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:20px">` : '🔔';
+  // Favicon + apple-touch-icon (best effort)
+  document.getElementById('faviconLink').href = has ? schoolLogo : 'icon-192.png';
+  document.getElementById('appleTouchIcon').href = has ? schoolLogo : 'icon-192.png';
+  document.getElementById('logoSub').textContent = has ? 'Logo terpasang ✓' : 'Belum ada logo — tap Upload';
+  document.getElementById('removeLogoRow').style.display = has ? '' : 'none';
+}
+function handleLogoFile(file) {
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) { alert('Gambar terlalu besar, maks 3MB'); return; }
+  const r = new FileReader();
+  r.onload = e => { schoolLogo = e.target.result; localStorage.setItem('alarmku_logo', schoolLogo); applyLogo(); };
+  r.readAsDataURL(file);
+}
+function removeLogo() { schoolLogo = ''; localStorage.removeItem('alarmku_logo'); applyLogo(); }
+document.getElementById('logoInput1').addEventListener('change', function() { handleLogoFile(this.files[0]); this.value=''; });
+document.getElementById('logoInput2').addEventListener('change', function() { handleLogoFile(this.files[0]); this.value=''; });
+applyLogo();
+
 // ===== CLOCK =====
 const DAYS_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const MONTHS_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-
 function updateClock() {
   const now = new Date();
   const h = String(now.getHours()).padStart(2,'0');
   const m = String(now.getMinutes()).padStart(2,'0');
   const s = now.getSeconds();
   document.getElementById('clockDisplay').textContent = `${h}:${m}`;
-  document.getElementById('clockDate').textContent = 
-    `${DAYS_ID[now.getDay()]}, ${now.getDate()} ${MONTHS_ID[now.getMonth()]} ${now.getFullYear()}`;
-  
-  // Check alarms every second
-  if (s === 0 || (s === 1 && !window._lastCheck)) {
-    window._lastCheck = true;
-    checkAlarms(h, m, now.getDay());
-  } else {
-    window._lastCheck = false;
-  }
+  document.getElementById('clockDate').textContent = `${DAYS_ID[now.getDay()]}, ${now.getDate()} ${MONTHS_ID[now.getMonth()]} ${now.getFullYear()}`;
+  if (s === 0 || (s === 1 && !window._lc)) { window._lc = true; checkAlarms(h, m, now.getDay()); }
+  else { window._lc = false; }
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -642,57 +455,42 @@ function showTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   btn.classList.add('active');
+  if (id === 'settings') {
+    const active = alarms.filter(a => a.enabled).length;
+    document.getElementById('alarmStatText').textContent = `${alarms.length} alarm, ${active} aktif`;
+  }
 }
 
 // ===== ALARMS =====
 let alarms = JSON.parse(localStorage.getItem('alarmku_alarms') || '[]');
-let ringingAlarm = null;
-let audioCtx = null;
-let ringingInterval = null;
-
-function getAudioContext() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-
-let currentAudio = null;
+let ringingAlarm = null, audioCtx = null, ringingInterval = null, currentAudio = null;
+function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
 
 function playSound(type) {
-  // Custom sound (base64 audio)
   const custom = customSounds.find(s => s.id === type);
   if (custom) {
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    const audio = new Audio(custom.dataUrl);
-    audio.volume = 0.8;
-    audio.play().catch(()=>{});
-    currentAudio = audio;
-    return 2; // approximate duration for interval calc
+    const a = new Audio(custom.dataUrl); a.volume = 0.9;
+    a.play().catch(()=>{}); currentAudio = a; return 2;
   }
-
-  // Built-in synthesized sounds
-  const ctx = getAudioContext();
-  const patterns = {
+  const ctx = getAudioCtx();
+  const P = {
     beep: [[880,0.1],[0,0.1],[880,0.1],[0,0.1],[880,0.3]],
     bell: [[523,0.1],[659,0.1],[784,0.4],[659,0.1],[784,0.5]],
     digital: [[1047,0.05],[0,0.05],[1047,0.05],[0,0.05],[1047,0.05],[0,0.05],[1047,0.15]],
     gentle: [[392,0.3],[440,0.3],[523,0.5]]
   };
   let t = ctx.currentTime;
-  const seq = patterns[type] || patterns.beep;
-  seq.forEach(([freq, dur]) => {
-    if (freq > 0) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      osc.start(t);
-      osc.stop(t + dur);
+  (P[type] || P.beep).forEach(([f,d]) => {
+    if (f > 0) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(0.35, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+d);
+      o.start(t); o.stop(t+d);
     }
-    t += dur;
+    t += d;
   });
   return t - ctx.currentTime;
 }
@@ -700,26 +498,19 @@ function playSound(type) {
 function startRinging(alarm) {
   ringingAlarm = alarm;
   document.getElementById('ringTime').textContent = alarm.time;
-  document.getElementById('ringLabel').textContent = alarm.label || 'Waktunya bangun!';
+  document.getElementById('ringLabel').textContent = alarm.label || 'Waktunya bel!';
   document.getElementById('ringOverlay').classList.add('show');
-
   const custom = customSounds.find(s => s.id === alarm.sound);
   if (custom) {
-    // Loop custom audio
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    const audio = new Audio(custom.dataUrl);
-    audio.loop = true;
-    audio.volume = 0.8;
-    audio.play().catch(()=>{});
-    currentAudio = audio;
+    const a = new Audio(custom.dataUrl); a.volume = 0.9;
+    a.play().catch(()=>{}); currentAudio = a;
+    a.onended = () => dismissAlarm(); // bunyi sekali, lalu otomatis dismiss
   } else {
-    let duration = playSound(alarm.sound || 'beep');
-    ringingInterval = setInterval(() => {
-      playSound(alarm.sound || 'beep');
-    }, (duration + 0.3) * 1000 + 500);
+    let dur = playSound(alarm.sound || 'beep');
+    ringingInterval = setInterval(() => playSound(alarm.sound || 'beep'), (dur + 0.3) * 1000 + 500);
   }
-  
-  if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 500]);
+  if ('vibrate' in navigator) navigator.vibrate([500,200,500,200,500]);
 }
 
 function dismissAlarm() {
@@ -727,8 +518,7 @@ function dismissAlarm() {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   document.getElementById('ringOverlay').classList.remove('show');
   if ('vibrate' in navigator) navigator.vibrate(0);
-  ringingAlarm = null;
-  renderAlarms();
+  ringingAlarm = null; renderAlarms();
 }
 
 function snoozeAlarm() {
@@ -736,30 +526,23 @@ function snoozeAlarm() {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   document.getElementById('ringOverlay').classList.remove('show');
   if ('vibrate' in navigator) navigator.vibrate(0);
-  
   if (ringingAlarm) {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 5);
-    const h = String(now.getHours()).padStart(2,'0');
-    const m = String(now.getMinutes()).padStart(2,'0');
-    const snooze = { ...ringingAlarm, id: Date.now(), time: `${h}:${m}`, label: '💤 Snooze: ' + (ringingAlarm.label || 'Alarm'), days: [], enabled: true };
-    alarms.push(snooze);
+    const now = new Date(); now.setMinutes(now.getMinutes() + 5);
+    alarms.push({ ...ringingAlarm, id: Date.now(), time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`, label: '💤 ' + (ringingAlarm.label || 'Alarm'), days: [], enabled: true });
     saveAlarms();
   }
-  ringingAlarm = null;
-  renderAlarms();
+  ringingAlarm = null; renderAlarms();
 }
 
-let checkedThisMinute = {};
+let checkedMin = {};
 function checkAlarms(h, m, dow) {
   const key = `${h}:${m}`;
   alarms.forEach(alarm => {
-    if (!alarm.enabled) return;
-    if (alarm.time !== key) return;
+    if (!alarm.enabled || alarm.time !== key) return;
     if (alarm.days.length > 0 && !alarm.days.includes(dow)) return;
-    if (checkedThisMinute[alarm.id + key]) return;
-    checkedThisMinute[alarm.id + key] = true;
-    setTimeout(() => delete checkedThisMinute[alarm.id + key], 70000);
+    if (checkedMin[alarm.id + key]) return;
+    checkedMin[alarm.id + key] = true;
+    setTimeout(() => delete checkedMin[alarm.id + key], 70000);
     startRinging(alarm);
   });
 }
@@ -768,222 +551,107 @@ const DAY_LABELS = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 function renderAlarms() {
   const list = document.getElementById('alarmList');
   if (!alarms.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⏰</div><div class="empty-text">Belum ada alarm.<br>Tap <strong>+ Tambah</strong> untuk buat alarm baru.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⏰</div><div class="empty-text">Belum ada alarm.<br>Tap <strong>+ Tambah</strong> untuk buat bel baru.</div></div>`;
     return;
   }
-  list.innerHTML = alarms.sort((a,b) => a.time.localeCompare(b.time)).map(alarm => `
-    <div class="alarm-card ${alarm.enabled ? 'active-alarm' : ''}">
+  list.innerHTML = alarms.sort((a,b)=>a.time.localeCompare(b.time)).map(alarm => `
+    <div class="alarm-card ${alarm.enabled?'active-alarm':''}">
       <div class="alarm-info">
-        <div class="alarm-time ${alarm.enabled ? '' : 'disabled'}">${alarm.time}</div>
-        <div class="alarm-label">${alarm.label || 'Alarm'}</div>
-        <div class="alarm-days">
-          ${DAY_LABELS.map((d,i) => `<div class="day-dot ${alarm.days.includes(i) ? 'on' : ''}">${d[0]}</div>`).join('')}
-        </div>
+        <div class="alarm-time ${alarm.enabled?'':'disabled'}">${alarm.time}</div>
+        <div class="alarm-label">${alarm.label||'Alarm'}</div>
+        <div class="alarm-days">${DAY_LABELS.map((d,i)=>`<div class="day-dot ${alarm.days.includes(i)?'on':''}">${d[0]}</div>`).join('')}</div>
       </div>
-      <button class="toggle-switch ${alarm.enabled ? 'on' : ''}" onclick="toggleAlarm('${alarm.id}')">
-        <div class="toggle-knob"></div>
-      </button>
+      <button class="toggle-switch ${alarm.enabled?'on':''}" onclick="toggleAlarm('${alarm.id}')"><div class="toggle-knob"></div></button>
       <button class="btn-delete" onclick="deleteAlarm('${alarm.id}')">🗑</button>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-function toggleAlarm(id) {
-  const a = alarms.find(x => x.id == id);
-  if (a) { a.enabled = !a.enabled; saveAlarms(); renderAlarms(); }
-}
-
-function deleteAlarm(id) {
-  alarms = alarms.filter(x => x.id != id);
-  saveAlarms(); renderAlarms();
-}
-
-function saveAlarms() {
-  localStorage.setItem('alarmku_alarms', JSON.stringify(alarms));
-}
+function toggleAlarm(id) { const a=alarms.find(x=>x.id==id); if(a){a.enabled=!a.enabled;saveAlarms();renderAlarms();} }
+function deleteAlarm(id) { alarms=alarms.filter(x=>x.id!=id); saveAlarms();renderAlarms(); }
+function saveAlarms() { localStorage.setItem('alarmku_alarms', JSON.stringify(alarms)); }
 
 // ===== CUSTOM SOUNDS =====
 let customSounds = JSON.parse(localStorage.getItem('alarmku_sounds') || '[]');
-// {id, name, dataUrl}
-
-function saveCustomSounds() {
-  localStorage.setItem('alarmku_sounds', JSON.stringify(customSounds));
-}
+function saveCustomSounds() { localStorage.setItem('alarmku_sounds', JSON.stringify(customSounds)); }
 
 function renderSoundPicker() {
   const picker = document.getElementById('soundPicker');
-  const currentSelected = picker.querySelector('.sound-btn.selected')?.dataset.sound || 'beep';
-  
-  // Built-in buttons
-  let html = `
-    <button class="sound-btn ${currentSelected==='beep'?'selected':''}" data-sound="beep" onclick="selectSound('beep',this)">🔔 Beep</button>
-    <button class="sound-btn ${currentSelected==='bell'?'selected':''}" data-sound="bell" onclick="selectSound('bell',this)">🛎 Bell</button>
-    <button class="sound-btn ${currentSelected==='digital'?'selected':''}" data-sound="digital" onclick="selectSound('digital',this)">📱 Digital</button>
-    <button class="sound-btn ${currentSelected==='gentle'?'selected':''}" data-sound="gentle" onclick="selectSound('gentle',this)">🌅 Gentle</button>
-  `;
-  // Custom sound buttons
+  const sel = picker.querySelector('.sound-btn.selected')?.dataset.sound || 'beep';
+  let html = ['beep','bell','digital','gentle'].map(id => {
+    const icons = {beep:'🔔',bell:'🛎',digital:'📱',gentle:'🌅'};
+    const names = {beep:'Beep',bell:'Bell',digital:'Digital',gentle:'Gentle'};
+    return `<button class="sound-btn ${sel===id?'selected':''}" data-sound="${id}" onclick="selectSound('${id}',this)">${icons[id]} ${names[id]}</button>`;
+  }).join('');
   customSounds.forEach(s => {
-    html += `<button class="sound-btn custom-sound ${currentSelected===s.id?'selected':''}" data-sound="${s.id}" onclick="selectSound('${s.id}',this)" title="${s.name}">🎵 ${s.name}<button class="btn-del-sound" onclick="deleteCustomSound('${s.id}',event)">✕</button></button>`;
+    html += `<button class="sound-btn custom-sound ${sel===s.id?'selected':''}" data-sound="${s.id}" onclick="selectSound('${s.id}',this)" title="${s.name}">🎵 ${s.name}<button class="btn-del-sound" onclick="deleteCustomSound('${s.id}',event)">✕</button></button>`;
   });
   picker.innerHTML = html;
 }
 
 function selectSound(id, btn) {
-  document.querySelectorAll('#soundPicker .sound-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#soundPicker .sound-btn').forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
   playSound(id);
 }
+function deleteCustomSound(id, e) { e.stopPropagation(); customSounds=customSounds.filter(s=>s.id!==id); saveCustomSounds();renderSoundPicker(); }
 
-function deleteCustomSound(id, e) {
-  e.stopPropagation();
-  customSounds = customSounds.filter(s => s.id !== id);
-  saveCustomSounds();
-  renderSoundPicker();
-}
-
-// Upload handler
 document.getElementById('soundFileInput').addEventListener('change', function() {
-  const file = this.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { alert('File terlalu besar! Maks 2MB.'); return; }
-  const name = file.name.replace(/\.[^.]+$/, '').slice(0, 20);
-  const reader = new FileReader();
-  reader.onload = (e) => {
+  const file = this.files[0]; if (!file) return;
+  if (file.size > 5*1024*1024) { alert('File terlalu besar! Maks 5MB'); return; }
+  const name = file.name.replace(/\.[^.]+$/,'').slice(0,20);
+  const r = new FileReader();
+  r.onload = e => {
     const id = 'custom_' + Date.now();
-    customSounds.push({ id, name, dataUrl: e.target.result });
-    saveCustomSounds();
-    renderSoundPicker();
-    // auto-select new sound
-    setTimeout(() => {
-      const btn = document.querySelector(`[data-sound="${id}"]`);
-      if (btn) selectSound(id, btn);
-    }, 50);
+    customSounds.push({id, name, dataUrl: e.target.result});
+    saveCustomSounds(); renderSoundPicker();
+    setTimeout(()=>{ const b=document.querySelector(`[data-sound="${id}"]`); if(b) selectSound(id,b); },50);
   };
-  reader.readAsDataURL(file);
-  this.value = '';
+  r.readAsDataURL(file); this.value='';
 });
 
-// Drag over upload area
 const uploadArea = document.getElementById('uploadArea');
-uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag'); });
-uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag'));
-uploadArea.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadArea.classList.remove('drag');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('audio/')) {
-    document.getElementById('soundFileInput').files = e.dataTransfer.files;
-    document.getElementById('soundFileInput').dispatchEvent(new Event('change'));
-  }
+uploadArea.addEventListener('dragover', e=>{e.preventDefault();uploadArea.classList.add('drag');});
+uploadArea.addEventListener('dragleave', ()=>uploadArea.classList.remove('drag'));
+uploadArea.addEventListener('drop', e=>{
+  e.preventDefault(); uploadArea.classList.remove('drag');
+  const file=e.dataTransfer.files[0];
+  if (file&&file.type.startsWith('audio/')) { const dt=new DataTransfer();dt.items.add(file);document.getElementById('soundFileInput').files=dt.files;document.getElementById('soundFileInput').dispatchEvent(new Event('change')); }
 });
 
-// ===== DAY PICKER =====
-document.querySelectorAll('.day-pick-btn').forEach(btn => {
-  btn.addEventListener('click', () => btn.classList.toggle('selected'));
-});
-
-// ===== SOUND PICKER =====
+document.querySelectorAll('.day-pick-btn').forEach(btn=>btn.addEventListener('click',()=>btn.classList.toggle('selected')));
 renderSoundPicker();
 
 function addAlarm() {
   const time = document.getElementById('alarmTime').value;
   if (!time) { alert('Pilih jam dulu!'); return; }
   const label = document.getElementById('alarmLabel').value.trim();
-  const days = [...document.querySelectorAll('.day-pick-btn.selected')].map(b => parseInt(b.dataset.day));
-  const sound = document.querySelector('.sound-btn.selected')?.dataset.sound || 'beep';
-  
-  alarms.push({ id: Date.now(), time, label, days, sound, enabled: true });
-  saveAlarms();
-  renderAlarms();
-  
-  // reset form
-  document.getElementById('alarmLabel').value = '';
-  
-  // go to list
-  document.querySelectorAll('.tab-btn')[0].click();
+  const days = [...document.querySelectorAll('.day-pick-btn.selected')].map(b=>parseInt(b.dataset.day));
+  const sound = document.querySelector('#soundPicker .sound-btn.selected')?.dataset.sound || 'beep';
+  alarms.push({id: Date.now(), time, label, days, sound, enabled: true});
+  saveAlarms(); renderAlarms();
+  document.getElementById('alarmLabel').value='';
   showTab('alarms', document.querySelectorAll('.tab-btn')[0]);
 }
 
-// ===== TIMER =====
-let timerSeconds = 0;
-let timerRemaining = 0;
-let timerRunning = false;
-let timerInterval = null;
-
-function setTimer(minutes) {
-  if (timerRunning) return;
-  timerSeconds = minutes * 60;
-  timerRemaining = timerSeconds;
-  updateTimerDisplay();
-}
-
-function updateTimerDisplay() {
-  const m = Math.floor(timerRemaining / 60);
-  const s = timerRemaining % 60;
-  const el = document.getElementById('timerDisplay');
-  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  el.className = 'timer-time' + (timerRunning ? ' running' : '');
-}
-
-function toggleTimer() {
-  if (timerRemaining === 0 && !timerRunning) return;
-  timerRunning = !timerRunning;
-  document.getElementById('timerToggleBtn').textContent = timerRunning ? 'Pause' : 'Mulai';
-  
-  if (timerRunning) {
-    timerInterval = setInterval(() => {
-      timerRemaining--;
-      updateTimerDisplay();
-      if (timerRemaining <= 0) {
-        clearInterval(timerInterval);
-        timerRunning = false;
-        document.getElementById('timerToggleBtn').textContent = 'Mulai';
-        playSound('bell'); playSound('bell');
-        if ('vibrate' in navigator) navigator.vibrate([300,100,300]);
-        alert('⏰ Timer selesai!');
-      }
-    }, 1000);
-  } else {
-    clearInterval(timerInterval);
-  }
-  updateTimerDisplay();
-}
-
-function resetTimer() {
-  clearInterval(timerInterval);
-  timerRunning = false;
-  timerRemaining = timerSeconds;
-  document.getElementById('timerToggleBtn').textContent = 'Mulai';
-  updateTimerDisplay();
-}
-
-// ===== PWA INSTALL =====
+// ===== PWA =====
 let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (!localStorage.getItem('alarmku_installed')) {
-    document.getElementById('installBanner').classList.add('show');
-  }
+function doInstall(btn) {
+  btn.addEventListener('click', async () => {
+    if (!deferredPrompt) { alert('Buka di Chrome → tap ⋮ menu → "Add to Home Screen"'); return; }
+    deferredPrompt.prompt();
+    const {outcome} = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') { localStorage.setItem('alarmku_installed','1'); document.getElementById('installBanner').classList.remove('show'); }
+    deferredPrompt = null;
+  });
+}
+doInstall(document.getElementById('btnInstall'));
+doInstall(document.getElementById('btnInstall2'));
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); deferredPrompt=e;
+  if (!localStorage.getItem('alarmku_installed')) document.getElementById('installBanner').classList.add('show');
 });
+window.addEventListener('appinstalled', ()=>{ localStorage.setItem('alarmku_installed','1'); document.getElementById('installBanner').classList.remove('show'); });
 
-document.getElementById('btnInstall').addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') {
-    localStorage.setItem('alarmku_installed', '1');
-    document.getElementById('installBanner').classList.remove('show');
-  }
-  deferredPrompt = null;
-});
-
-window.addEventListener('appinstalled', () => {
-  localStorage.setItem('alarmku_installed', '1');
-  document.getElementById('installBanner').classList.remove('show');
-});
-
-// ===== INIT =====
 renderAlarms();
 </script>
 </body>
