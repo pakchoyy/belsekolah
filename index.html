@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Bel Sekolah PRO</title>
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  text-align: center;
+}
+.logo { width: 80px; margin-top: 15px; }
+.clock { font-size: 50px; margin: 10px; }
+
+.box {
+  background: #1e293b;
+  padding: 12px;
+  margin: 10px auto;
+  width: 300px;
+  border-radius: 10px;
+}
+
+input, select {
+  padding: 5px;
+  margin: 5px;
+}
+
+button {
+  padding: 5px 10px;
+  margin: 5px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.on { background: #22c55e; color:white; }
+.off { background: #ef4444; color:white; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<img src="logo.png" class="logo">
+<h2>BEL SEKOLAH</h2>
+
+<div class="clock" id="clock"></div>
+
+<div id="loginBox" class="box">
+  <h3>Login Admin</h3>
+  <input type="password" id="pass" placeholder="Password">
+  <br>
+  <button onclick="login()">Masuk</button>
+</div>
+
+<div id="adminPanel" class="hidden">
+
+  <div class="box">
+    <h3>Tambah Jadwal</h3>
+    <input type="time" id="jam">
+    <input type="text" id="nama" placeholder="Nama">
+    <select id="suara">
+      <option value="suara/masuk.mp3">Masuk</option>
+      <option value="suara/istirahat.mp3">Istirahat</option>
+      <option value="suara/pulang.mp3">Pulang</option>
+    </select><br>
+    <button onclick="tambah()">Tambah</button>
+  </div>
+
+</div>
+
+<div id="list"></div>
+
+<audio id="audio"></audio>
+
+<script>
+const PASSWORD = "12345";
+
+let isAdmin = false;
+let alarms = JSON.parse(localStorage.getItem("alarms")) || [];
+let terakhir = "";
+
+function login() {
+  const p = document.getElementById("pass").value;
+  if (p === PASSWORD) {
+    isAdmin = true;
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("adminPanel").classList.remove("hidden");
+    render();
+  } else {
+    alert("Password salah!");
+  }
+}
+
+function simpan() {
+  localStorage.setItem("alarms", JSON.stringify(alarms));
+}
+
+function render() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  alarms.forEach((a, i) => {
+    list.innerHTML += `
+      <div class="box">
+        ${
+          isAdmin
+          ? `<input type="time" value="${a.jam}" onchange="editJam(${i}, this.value)">
+             <input type="text" value="${a.nama}" onchange="editNama(${i}, this.value)">`
+          : `<b>${a.nama}</b><br>${a.jam}`
+        }
+        <br>
+
+        ${
+          isAdmin
+          ? `<select onchange="editSuara(${i}, this.value)">
+               <option value="suara/masuk.mp3" ${a.suara.includes('masuk')?'selected':''}>Masuk</option>
+               <option value="suara/istirahat.mp3" ${a.suara.includes('istirahat')?'selected':''}>Istirahat</option>
+               <option value="suara/pulang.mp3" ${a.suara.includes('pulang')?'selected':''}>Pulang</option>
+             </select>`
+          : ``
+        }
+
+        <br>
+
+        ${
+          isAdmin
+          ? `<button class="${a.aktif?'on':'off'}" onclick="toggle(${i})">
+               ${a.aktif?'ON':'OFF'}
+             </button>
+             <button onclick="hapus(${i})">Hapus</button>`
+          : ``
+        }
+      </div>
+    `;
+  });
+}
+
+function tambah() {
+  const jam = document.getElementById("jam").value;
+  const nama = document.getElementById("nama").value;
+  const suara = document.getElementById("suara").value;
+
+  if (!jam || !nama) return alert("Isi dulu!");
+
+  alarms.push({ jam, nama, suara, aktif: true });
+  simpan();
+  render();
+}
+
+function editJam(i, val) { alarms[i].jam = val; simpan(); }
+function editNama(i, val) { alarms[i].nama = val; simpan(); }
+function editSuara(i, val) { alarms[i].suara = val; simpan(); }
+
+function toggle(i) {
+  alarms[i].aktif = !alarms[i].aktif;
+  simpan();
+  render();
+}
+
+function hapus(i) {
+  alarms.splice(i, 1);
+  simpan();
+  render();
+}
+
+function jalan() {
+  const now = new Date();
+  const jam = now.toTimeString().slice(0,5);
+  document.getElementById("clock").innerText = jam;
+
+  alarms.forEach(a => {
+    if (a.jam === jam && a.aktif && terakhir !== jam) {
+      bunyi(a.suara);
+      terakhir = jam;
+    }
+  });
+}
+
+function bunyi(src) {
+  const audio = document.getElementById("audio");
+  audio.src = src;
+  audio.play();
+}
+
+setInterval(jalan, 1000);
+render();
+</script>
+
+</body>
+</html>
